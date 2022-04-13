@@ -55,6 +55,9 @@ std::deque<sensor_msgs::Imu> convert_text (std::deque<double>& vec)
 		//it needs a header
 		std_msgs::Header h;
 		//TODO: stamp it!
+		//h.frame_id = "imu_frame"+std::to_string(i); //not sure what to put here.
+		h.frame_id = "map";
+		h.stamp = ros::Time::now();
 		//then angular velocity (gyro)
 		geometry_msgs::Vector3 gyro;
 
@@ -97,6 +100,7 @@ int main(int argc, char **argv)
 	  ImuPubs.push_back(n.advertise<sensor_msgs::Imu>("imu"+std::to_string(i), 1000));  
   }
   SimpleServer server;
+  ROS_INFO("Started cometa bridge listener.");
   while (ros::ok())
   {
     if (server.receive())
