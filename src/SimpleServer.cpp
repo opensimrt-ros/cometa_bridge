@@ -13,7 +13,7 @@
 #include <iostream>
 #include <sstream>
 #include <iterator>
-#include <vector>
+#include <deque>
 
 #include <ros/ros.h>
 //#include <tf/transform_listener.h>
@@ -68,6 +68,8 @@ bool SimpleServer::receive()
 		n = recvfrom(sockfd, (char *)buffer, buffersize,
 					MSG_DONTWAIT, ( struct sockaddr *) &cliaddr,
 					&len);
+
+		output.clear(); // we clear it each time we try to receive. 
 		//now I need to find if there is the word BYE in it
 		if (n >= 0)
 			ROS_INFO_STREAM("HERO1"<<n);
@@ -90,11 +92,11 @@ bool SimpleServer::receive()
 		std::istream_iterator<std::string> begin(ss), end;
 		std::vector<std::string> vstrings(begin, end);
 		//std::copy(vstrings.begin(), vstrings.end(), std::ostream_iterator<std::string>(std::cout, "\n"));
-		std::vector<double> myvec;
 
+		//std::deque output;
 		for (auto a_str : vstrings)
 		{
-			myvec.push_back(std::stod(a_str));
+			output.push_back(std::stod(a_str));
 		}
 		////THIS IS KINDA WORKING. I THINK
 		//std::stringstream out_ros;
@@ -109,11 +111,10 @@ bool SimpleServer::receive()
 		//todo: rosdebug or somehting
 		ROS_DEBUG("Hello message sent.\n");
 		
-		output = myvec;
-		//return myvec;
-		//for( auto i:myvec)
-		//	ROS_INFO_STREAM("THIS THING" << i);
-		ROS_INFO_STREAM("THIS THING:" << myvec.size());
+		//return output;
+		for( auto i:output)
+			ROS_INFO_STREAM("each num: " << i);
+		//ROS_INFO_STREAM("THIS THING:" << output.size());
 		return true;
 	
 

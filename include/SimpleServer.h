@@ -1,4 +1,4 @@
-#include <vector>
+#include <deque>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -24,6 +24,6 @@ class SimpleServer {
 	struct sockaddr_in servaddr, cliaddr;	
 	//std::vector<double> receive();
 	bool receive();
-	std::vector<double> output;
+	std::deque<double> output;
 };
 
