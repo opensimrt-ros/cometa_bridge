@@ -45,6 +45,7 @@ SimpleServer::SimpleServer (int PORT, int MAXLINE) {
 		if ( bind(sockfd, (const struct sockaddr *)&servaddr,
 				sizeof(servaddr)) < 0 )
 		{
+			ROS_ERROR_STREAM("Bind error using port " << PORT );
 			perror("bind failed");
 			exit(EXIT_FAILURE);
 		}
@@ -72,10 +73,11 @@ bool SimpleServer::receive()
 		output.clear(); // we clear it each time we try to receive. 
 		//now I need to find if there is the word BYE in it
 		if (n >= 0)
-			ROS_INFO_STREAM("HERO1"<<n);
+			ROS_DEBUG_STREAM("Received data ok."<<n);
 		else
 		{
-			ROS_INFO_STREAM("HERO2"<<n);
+			//TODO: Change to warning throttle or something
+			ROS_DEBUG_STREAM("Received no data. From socket... Error No.: "<<n);
 			return false;
 		}
 		buffer[n] = '\0';
@@ -83,7 +85,7 @@ bool SimpleServer::receive()
 		ROS_DEBUG("Client : %s\n", buffer);
 		if (strcmp(buffer, "BYE!") == 0 )
 		{
-		       std::cout << "received goodbye SS OK." << std::endl;
+		       ROSO_INFO_STREAM("Received goodbye SS OK.");
 		       return false;
 		}
 
@@ -113,8 +115,8 @@ bool SimpleServer::receive()
 		
 		//return output;
 		for( auto i:output)
-			ROS_INFO_STREAM("each num: " << i);
-		//ROS_INFO_STREAM("THIS THING:" << output.size());
+			ROS_DEBUG_STREAM("each num: " << i);
+		//ROS_DEBUG_STREAM("THIS THING:" << output.size());
 		return true;
 	
 

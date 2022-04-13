@@ -44,11 +44,11 @@ std::deque<sensor_msgs::Imu> convert_text (std::deque<double>& vec)
 
 	double time = vec[0];
 	vec.pop_front();
-	ROS_INFO_STREAM("time" << time);	
+	ROS_DEBUG_STREAM("Time: " << time);	
 
 	for (int i; i < vec.size()/18; i++)
 	{
-		ROS_INFO_STREAM("Adding imu index i: " << i );
+		ROS_DEBUG_STREAM("Adding imu index i: " << i );
 		sensor_msgs::Imu thisImu;
 
 		
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
   std::deque<ros::Publisher> ImuPubs;
   for (int i= 0; i < MAXIMUS; i++)
   {
-	  ROS_INFO_STREAM("Iterating publishers: " << i);
+	  ROS_DEBUG_STREAM("Iterating publishers: " << i);
 	  ImuPubs.push_back(n.advertise<sensor_msgs::Imu>("imu"+std::to_string(i), 1000));  
   }
   SimpleServer server;
@@ -102,12 +102,12 @@ int main(int argc, char **argv)
     if (server.receive())
     {
 	    std::deque<sensor_msgs::Imu> I = convert_text(server.output);
-	    ROS_INFO_STREAM("How many IMUs I found: " << I.size() << ". How many publishers I have: " << ImuPubs.size());
+	    ROS_DEBUG_STREAM("How many IMUs I found: " << I.size() << ". How many publishers I have: " << ImuPubs.size());
 	    for (int i = 0; i < I.size(); i++)
 	    {
 		    //:combine(I, ImuPubs))
 
-		    ROS_INFO_STREAM("i: " << i);
+		    ROS_DEBUG_STREAM("i: " << i);
 		    //ros::Publisher pub;
 		    //sensor_msgs::Imu imumsg;
 		    //boost::tie(imumsg, pub) = tup;
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 	    std::stringstream ss;
 	    ss << server.buffer << count;
 	    msg.data = ss.str();
-	    ROS_INFO("%s", msg.data.c_str());
+	    ROS_DEBUG("%s", msg.data.c_str());
 	    chatter_pub.publish(msg);
     }
     ros::spinOnce();
