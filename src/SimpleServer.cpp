@@ -85,7 +85,7 @@ bool SimpleServer::receive()
 		ROS_DEBUG("Client : %s\n", buffer);
 		if (strcmp(buffer, "BYE!") == 0 )
 		{
-		       ROSO_INFO_STREAM("Received goodbye SS OK.");
+		       ROS_INFO_STREAM("Received goodbye SS OK.");
 		       return false;
 		}
 
