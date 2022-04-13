@@ -16,13 +16,11 @@
 #include <vector>
 
 #include <ros/ros.h>
-#include <tf/transform_listener.h>
+//#include <tf/transform_listener.h>
 
 // Driver code
-SimpleServer::SimpleServer (int PORT = 8080, int MAXLINE = 4096, bool Simple = true) {
+SimpleServer::SimpleServer (int PORT, int MAXLINE) {
 
-	if (Simple){
-		ImSimple = true;	
 		//socklen_t sockfd;
 		buffer = new char[MAXLINE];
 		hello = "Hello from server";
@@ -54,12 +52,7 @@ SimpleServer::SimpleServer (int PORT = 8080, int MAXLINE = 4096, bool Simple = t
 		//socklen_t len, n;
 
 		len = sizeof(cliaddr); //len is value/resuslt
-	}
-	else
-	{
-		///read one tf and make it for everyone
-		tf::TransformListener listener;
-	}
+
 }
 
 SimpleServer::~SimpleServer(void)
@@ -69,14 +62,23 @@ SimpleServer::~SimpleServer(void)
 //std::vector<double> SimpleServer::receive()
 bool SimpleServer::receive()
 {
-	if (ImSimple){
-		n = recvfrom(sockfd, (char *)buffer, buffersize,
+		/*n = recvfrom(sockfd, (char *)buffer, buffersize,
 					MSG_WAITALL, ( struct sockaddr *) &cliaddr,
+					&len);*/
+		n = recvfrom(sockfd, (char *)buffer, buffersize,
+					MSG_DONTWAIT, ( struct sockaddr *) &cliaddr,
 					&len);
 		//now I need to find if there is the word BYE in it
+		if (n >= 0)
+			ROS_INFO_STREAM("HERO1"<<n);
+		else
+		{
+			ROS_INFO_STREAM("HERO2"<<n);
+			return false;
+		}
 		buffer[n] = '\0';
-		//rosdebug?
-		//printf("Client : %s\n", buffer);
+			
+		ROS_DEBUG("Client : %s\n", buffer);
 		if (strcmp(buffer, "BYE!") == 0 )
 		{
 		       std::cout << "received goodbye SS OK." << std::endl;
@@ -95,16 +97,17 @@ bool SimpleServer::receive()
 			myvec.push_back(std::stod(a_str));
 		}
 		////THIS IS KINDA WORKING. I THINK
+		//std::stringstream out_ros;
 		//for (auto a_double : myvec )
-		//	std::cout << a_double << "|";
-		//std::cout << std::endl ;
+		//	out_ros << a_double << "|";
+		//ROS_DEBUG_STREAM("What I got: " << out_ros ) ;
 
 		//printf("Client : %s\n", buffer);
 		sendto(sockfd, (const char *)hello, strlen(hello),
 			MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
 				len);
 		//todo: rosdebug or somehting
-		//printf("Hello message sent.\n");
+		ROS_DEBUG("Hello message sent.\n");
 		
 		output = myvec;
 		//return myvec;
@@ -112,45 +115,7 @@ bool SimpleServer::receive()
 		//	ROS_INFO_STREAM("THIS THING" << i);
 		ROS_INFO_STREAM("THIS THING:" << myvec.size());
 		return true;
-	}
-	else
-	{
-		//rosreceive its wrong it should be on a callback basis, 
-		tf::StampedTransform transform;
-    		try{
-			listener.waitForTransform("/map", "/ar_marker_10", ros::Time(0), ros::Duration(3.0));
-      			listener.lookupTransform("/map", "/ar_marker_10",
-                               		ros::Time(0), transform);
-    		}
-    		catch (tf::TransformException ex){
-      			ROS_ERROR("%s",ex.what());
-      			//ros::Duration(1.0).sleep();
-    			return false;
-		}
-		std::vector<double> myvec;
-		// now i need to set this myvec with the values i read for the quaternions somehow
-		
-		double time = ros::Time::now().toSec();// i need to get this from the transform somehow
-		
-		myvec.push_back(time);
+	
 
-		auto myq = transform.getRotation();
-
-		for (int i=0; i<3; i++)
-		{
-			myvec.push_back(myq.x());
-			myvec.push_back(myq.y());
-			myvec.push_back(myq.z());
-			myvec.push_back(myq.w());
-			// now it is a bunch of zeros
-			myvec.insert(myvec.end(), 14, -0.010 );
-		}
-		//for( auto i:myvec)
-		//	ROS_INFO_STREAM("THIS THING" << i);
-		ROS_INFO_STREAM("THIS THING:" << myvec.size());
-		
-		output = myvec;
-		return true;	
-	}
 }
 
