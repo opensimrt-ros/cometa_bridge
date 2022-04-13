@@ -14,7 +14,7 @@
 
 class SimpleServer {
  public:
-	SimpleServer(int PORT, int MAXLINE);
+	SimpleServer(int PORT = 8080, int MAXLINE= 4096);
 	~SimpleServer();
 	char* buffer;
 	char* hello;
