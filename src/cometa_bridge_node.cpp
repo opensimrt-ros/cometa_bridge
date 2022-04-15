@@ -97,7 +97,7 @@ int main(int argc, char **argv)
   for (int i= 0; i < MAXIMUS; i++)
   {
 	  ROS_DEBUG_STREAM("Iterating publishers: " << i);
-	  ImuPubs.push_back(n.advertise<sensor_msgs::Imu>("imu"+std::to_string(i), 1000));  
+	  ImuPubs.push_back(n.advertise<sensor_msgs::Imu>("imu"+std::to_string(i)+"/data_raw", 1000));  
   }
   SimpleServer server;
   ROS_INFO("Started cometa bridge listener.");
