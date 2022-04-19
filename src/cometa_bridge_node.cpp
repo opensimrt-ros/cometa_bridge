@@ -87,12 +87,13 @@ std::deque<sensor_msgs::Imu> convert_text (std::deque<double>& vec)
 int main(int argc, char **argv)
 {
   signal(SIGINT, mySigintHandler);
-  ros::init(argc, argv, "talker");
+  ros::init(argc, argv, "imu_bridge");
   ros::NodeHandle n;
-  ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
+  ros::Publisher chatter_pub = n.advertise<std_msgs::String>("imu_driver_string", 1000);
   ros::Rate loop_rate(10);
   int count = 0;
   int MAXIMUS = 10;
+  n.getParam("num_imus", MAXIMUS);
   std::deque<ros::Publisher> ImuPubs;
   for (int i= 0; i < MAXIMUS; i++)
   {
