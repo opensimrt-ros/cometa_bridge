@@ -88,7 +88,7 @@ int main(int argc, char **argv)
 {
   signal(SIGINT, mySigintHandler);
   ros::init(argc, argv, "imu_bridge");
-  ros::NodeHandle n;
+  ros::NodeHandle n("~");
   ros::Publisher chatter_pub = n.advertise<std_msgs::String>("imu_driver_string", 1000);
   ros::Rate loop_rate(10);
   int count = 0;
