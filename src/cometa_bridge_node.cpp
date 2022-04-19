@@ -88,12 +88,13 @@ int main(int argc, char **argv)
 {
   signal(SIGINT, mySigintHandler);
   ros::init(argc, argv, "imu_bridge");
-  ros::NodeHandle n("~");
+  ros::NodeHandle n;
+  ros::NodeHandle nh("~");
   ros::Publisher chatter_pub = n.advertise<std_msgs::String>("imu_driver_string", 1000);
   ros::Rate loop_rate(10);
   int count = 0;
   int MAXIMUS = 10;
-  n.getParam("num_imus", MAXIMUS);
+  nh.getParam("num_imus", MAXIMUS);
   std::deque<ros::Publisher> ImuPubs;
   for (int i= 0; i < MAXIMUS; i++)
   {
