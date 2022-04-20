@@ -16,10 +16,15 @@
 #include <deque>
 
 #include <ros/ros.h>
+#include <ros/console.h>
 //#include <tf/transform_listener.h>
 
 // Driver code
 SimpleServer::SimpleServer (int PORT, int MAXLINE) {
+		const char* logger_name = ROSCONSOLE_DEFAULT_NAME "." ;
+		if( ros::console::set_logger_level(logger_name+ debugger_sink, ros::console::levels::Info) ) {
+   			ros::console::notifyLoggerLevelsChanged();
+		}
 
 		//socklen_t sockfd;
 		buffer = new char[MAXLINE];
@@ -29,6 +34,7 @@ SimpleServer::SimpleServer (int PORT, int MAXLINE) {
 		
 		// Creating socket file descriptor
 		if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
+			ROS_ERROR_STREAM_NAMED(debugger_sink, "socket creation failed.");
 			perror("socket creation failed");
 			exit(EXIT_FAILURE);
 		}
@@ -45,7 +51,7 @@ SimpleServer::SimpleServer (int PORT, int MAXLINE) {
 		if ( bind(sockfd, (const struct sockaddr *)&servaddr,
 				sizeof(servaddr)) < 0 )
 		{
-			ROS_ERROR_STREAM("Bind error using port " << PORT );
+			ROS_ERROR_STREAM_NAMED(debugger_sink, "Bind error using port " << PORT );
 			perror("bind failed");
 			exit(EXIT_FAILURE);
 		}
@@ -73,19 +79,19 @@ bool SimpleServer::receive()
 		output.clear(); // we clear it each time we try to receive. 
 		//now I need to find if there is the word BYE in it
 		if (n >= 0)
-			ROS_DEBUG_STREAM("Received data ok."<<n);
+			ROS_DEBUG_STREAM_NAMED(debugger_sink, "Received data ok."<<n);
 		else
 		{
 			//TODO: Change to warning throttle or something
-			ROS_DEBUG_STREAM("Received no data. From socket... Error No.: "<<n);
+			ROS_DEBUG_STREAM_NAMED(debugger_sink, "Received no data. From socket... Error No.: "<<n);
 			return false;
 		}
 		buffer[n] = '\0';
 			
-		ROS_DEBUG("Client : %s\n", buffer);
+		ROS_DEBUG_NAMED(debugger_sink, "Client : %s\n", buffer);
 		if (strcmp(buffer, "BYE!") == 0 )
 		{
-		       ROS_INFO_STREAM("Received goodbye SS OK.");
+		       ROS_INFO_STREAM_NAMED(debugger_sink, "Received goodbye SS OK.");
 		       return false;
 		}
 
@@ -111,11 +117,11 @@ bool SimpleServer::receive()
 			MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
 				len);
 		//todo: rosdebug or somehting
-		ROS_DEBUG("Hello message sent.\n");
+		ROS_DEBUG_NAMED(debugger_sink, "Hello message sent.\n");
 		
 		//return output;
 		for( auto i:output)
-			ROS_DEBUG_STREAM("each num: " << i);
+			ROS_DEBUG_STREAM_NAMED(debugger_sink, "each num: " << i);
 		//ROS_DEBUG_STREAM("THIS THING:" << output.size());
 		return true;
 	

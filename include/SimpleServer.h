@@ -18,6 +18,7 @@ class SimpleServer {
 	~SimpleServer();
 	char* buffer;
 	char* hello;
+	const std::string debugger_sink = "SimpleServer"; 
 	int buffersize;
 	socklen_t sockfd, len;
 	ssize_t n;

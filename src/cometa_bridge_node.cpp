@@ -57,10 +57,10 @@ geometry_msgs::Vector3 convert_gyro_to_rad(geometry_msgs::Vector3 gyro_degree_pe
 geometry_msgs::Vector3 convert_acc_g_to_ms(geometry_msgs::Vector3 acc_g)
 {
 	geometry_msgs::Vector3 out_acc;
-	out_acc.x = acc_g.x/GRAVITY;
-	out_acc.y = acc_g.y/GRAVITY;
-	out_acc.y = acc_g.y/GRAVITY;
-	
+	out_acc.x = acc_g.x*GRAVITY;
+	out_acc.y = acc_g.y*GRAVITY;
+	out_acc.y = acc_g.y*GRAVITY;
+	return out_acc;	
 }
 
 std::deque<sensor_msgs::Imu> convert_text (std::deque<double>& vec)
@@ -121,11 +121,17 @@ std::deque<sensor_msgs::Imu> convert_text (std::deque<double>& vec)
 		//there is also something called covariance. idk why i need it and where to get it, so it will remain unset.
 		
 		thisImu.header = h;
-	//	thisImu.angular_velocity = convert_gyro_to_rad(gyro);
-	//	thisImu.linear_acceleration = convert_acc_g_to_ms(acc);
-		thisImu.angular_velocity = (gyro);
-		thisImu.linear_acceleration = (acc);
-		//thisImu.orientation = q;
+
+		geometry_msgs::Vector3 cgyro = convert_gyro_to_rad(gyro);
+		thisImu.angular_velocity = cgyro;
+		ROS_DEBUG_STREAM("Gyro converted: " << cgyro);
+
+		geometry_msgs::Vector3 cacc = convert_acc_g_to_ms(acc);
+		ROS_DEBUG_STREAM("Acc converted:" << cacc);
+		thisImu.linear_acceleration = cacc;
+		//thisImu.angular_velocity = (gyro);
+		//thisImu.linear_acceleration = (acc);
+		thisImu.orientation = q;
 
 		imus.push_back(thisImu);
 		ROS_DEBUG_STREAM("Finished parsing imu index i: " << i );
@@ -138,7 +144,7 @@ std::deque<sensor_msgs::Imu> convert_text (std::deque<double>& vec)
 
 int main(int argc, char **argv)
 {
-  /*  if( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug) ) {
+    /*if( ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug) ) {
      ros::console::notifyLoggerLevelsChanged();
   }*/
 
