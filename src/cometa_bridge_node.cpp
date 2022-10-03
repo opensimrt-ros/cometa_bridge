@@ -9,7 +9,7 @@
 #include "geometry_msgs/Quaternion.h"
 #include "geometry_msgs/Vector3.h"
 #include <deque>
-
+#include <tf/transform_broadcaster.h>
 #include <ros/console.h>
 
 void mySigintHandler(int sig)
@@ -30,6 +30,8 @@ thorax_q1    thorax_q2    thorax_q3    thorax_q4    thorax_ax    thorax_ay    th
  *
  * */
 //print("\n".join(["COMETA_"+j.split("thorax_")[-1].upper()+"="+str(i)+"," for i,j in enumerate(a.split())]))
+
+
 
 
 enum CometaImuOrder {
@@ -113,7 +115,7 @@ std::deque<sensor_msgs::Imu> convert_text (std::deque<double>& vec)
 		//TODO: stamp it!
 		//now it is more complicated than this. I think maybe I should read the time from each packet and use that as a stamp
 		//h.frame_id = "imu_frame"+std::to_string(i); //not sure what to put here.
-		h.frame_id = "map";
+		h.frame_id = "imu_o"+ std::to_string(i);
 		double now = ros::Time::now().toSec();
 		if (now - time > MAX_DELAY)
 			ROS_WARN_STREAM("The time delay difference between acquired data is greater than " << MAX_DELAY << " publication time: " << time << " Now is: " << now );
@@ -150,6 +152,8 @@ std::deque<sensor_msgs::Imu> convert_text (std::deque<double>& vec)
 		
 		thisImu.header = h;
 
+		//cometa itself is maybe already SI it seems, so this is useless.
+		/*
 		geometry_msgs::Vector3 cgyro = convert_gyro_to_rad(gyro);
 		thisImu.angular_velocity = cgyro;
 		ROS_DEBUG_STREAM("Gyro converted: " << cgyro);
@@ -157,8 +161,26 @@ std::deque<sensor_msgs::Imu> convert_text (std::deque<double>& vec)
 		geometry_msgs::Vector3 cacc = convert_acc_g_to_ms(acc);
 		ROS_DEBUG_STREAM("Acc converted:" << cacc);
 		thisImu.linear_acceleration = cacc;
-		//thisImu.angular_velocity = (gyro);
-		//thisImu.linear_acceleration = (acc);
+		*/
+		//oh yeah, i flipped those in the cometa c# app. so quick fix just to test:
+		thisImu.angular_velocity = (acc);
+		thisImu.linear_acceleration = (gyro);
+
+		//TOTALLY FLIPPED, THIS IS FLIPPED
+		/*geometry_msgs::Vector3 cgyro = convert_gyro_to_rad(acc);
+		thisImu.angular_velocity = cgyro;
+		ROS_DEBUG_STREAM("Gyro converted: " << cgyro);
+
+		geometry_msgs::Vector3 cacc = convert_acc_g_to_ms(gyro);
+		ROS_DEBUG_STREAM("Acc converted:" << cacc);
+		thisImu.linear_acceleration = cacc;
+		*/
+
+
+
+
+		/*thisImu.angular_velocity = (gyro); //TODO: FIX COMETA APPP!!!!!! this is the correct way
+		thisImu.linear_acceleration = (acc);*/
 		thisImu.orientation = q;
 
 		imus.push_back(thisImu);
@@ -168,6 +190,63 @@ std::deque<sensor_msgs::Imu> convert_text (std::deque<double>& vec)
 	ROS_DEBUG_STREAM("Do I return or crash?");
 	return imus;
 }	
+//stolen from complementary_filter_ros
+tf::Quaternion hamiltonToTFQuaternion(double q0,
+                                                              double q1,
+                                                              double q2,
+                                                              double q3) 
+{
+    // ROS uses the Hamilton quaternion convention (q0 is the scalar). However,
+    // the ROS quaternion is in the form [x, y, z, w], with w as the scalar.
+    return tf::Quaternion(q1, q2, q3, q0);
+}
+
+//tf::TransformBroadcaster tf_broadcaster_;
+
+void imu_to_tf(sensor_msgs::Imu imu, std::string fixed_frame_, tf::TransformBroadcaster *tf_broadcaster_, int i)
+{
+	bool reverse_tf_ = true;
+	bool anverse = true;
+	
+	// idk what i use here
+	//tf::Quaternion q = hamiltonToTFQuaternion(q0, q1, q2, q3);
+	double q0 = imu.orientation.w;
+	double q1 = imu.orientation.x;
+	double q2 = imu.orientation.y;
+	double q3 = imu.orientation.z;
+	tf::Quaternion q = hamiltonToTFQuaternion(q0, q1, q2, q3);
+	//std::string fixed_frame_ = "imu"+ i
+	
+	//stolen from imu_complementary_filter
+	// Create and publish the ROS tf.
+        tf::Transform transform;
+        transform.setOrigin(tf::Vector3(0.1, 0.1, 0.1));
+        transform.setRotation(q);
+
+        if (reverse_tf_)
+        {
+	    if (anverse)
+	    {
+
+            tf_broadcaster_->sendTransform(tf::StampedTransform(
+                transform, imu.header.stamp,
+                imu.header.frame_id, fixed_frame_));
+	    }
+	    else
+	    {
+            tf_broadcaster_->sendTransform(tf::StampedTransform(
+                transform.inverse(), imu.header.stamp,
+                imu.header.frame_id, fixed_frame_));
+	    }
+        } else
+        {
+            tf_broadcaster_->sendTransform(tf::StampedTransform(
+                transform, imu.header.stamp, fixed_frame_,
+                imu.header.frame_id));
+        }
+
+}
+
 
 
 int main(int argc, char **argv)
@@ -185,9 +264,15 @@ int main(int argc, char **argv)
   ros::Rate loop_rate(10);
   int count = 0;
   int MAXIMUS = 10;
+  bool publish_tfs = true;
+  nh.getParam("publish_tfs", publish_tfs);
+
   nh.getParam("num_imus", MAXIMUS);
   ROS_INFO_STREAM("NUM imus " << MAXIMUS );
   std::deque<ros::Publisher> ImuPubs;
+
+  tf::TransformBroadcaster tf_broadcaster_;
+
   for (int i= 0; i < MAXIMUS; i++)
   {
 	  ROS_INFO_STREAM("Iterating publishers: " << i);
@@ -205,18 +290,22 @@ int main(int argc, char **argv)
 	    for (int i = 0; i < I.size(); i++)
 	    {
 		    //:combine(I, ImuPubs))
-
+		    std::string fixed_frame_ = "imu" + std::to_string(i)+ "_c";
 		    ROS_DEBUG_STREAM("i: " << i);
 		    //ros::Publisher pub;
 		    //sensor_msgs::Imu imumsg;
 		    //boost::tie(imumsg, pub) = tup;
+		    if (publish_tfs)
+		    	{
+				imu_to_tf(I[i], fixed_frame_, &tf_broadcaster_, i);
+			}
 		    ImuPubs[i].publish(I[i]);
 	    }
 	    std_msgs::String msg;
 	    std::stringstream ss;
-	    ss << server.buffer << count;
+	    ss << server.buffer << " and the count, because why not" << count;
 	    msg.data = ss.str();
-	    ROS_DEBUG("%s", msg.data.c_str());
+	    ROS_DEBUG_STREAM("the raw string i received:" << ss.str());
 	    chatter_pub.publish(msg);
     }
     else

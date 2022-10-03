@@ -22,7 +22,7 @@
 // Driver code
 SimpleServer::SimpleServer (int PORT, int MAXLINE) {
 		const char* logger_name = ROSCONSOLE_DEFAULT_NAME "." ;
-		if( ros::console::set_logger_level(logger_name+ debugger_sink, ros::console::levels::Info) ) {
+		if( ros::console::set_logger_level(logger_name+ debugger_sink, ros::console::levels::Debug) ) {
    			ros::console::notifyLoggerLevelsChanged();
 		}
 
