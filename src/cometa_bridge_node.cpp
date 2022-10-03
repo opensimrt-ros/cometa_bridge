@@ -93,7 +93,7 @@ geometry_msgs::Vector3 convert_acc_g_to_ms(geometry_msgs::Vector3 acc_g)
 	return out_acc;	
 }
 
-std::deque<sensor_msgs::Imu> convert_text (std::deque<double>& vec)
+std::deque<sensor_msgs::Imu> convert_text (std::deque<double>& vec, std::vector<std::string> imuObservationOrder)
 {
 	//using enum CometaImuOrder;
 	std::deque<sensor_msgs::Imu> imus;
@@ -115,7 +115,8 @@ std::deque<sensor_msgs::Imu> convert_text (std::deque<double>& vec)
 		//TODO: stamp it!
 		//now it is more complicated than this. I think maybe I should read the time from each packet and use that as a stamp
 		//h.frame_id = "imu_frame"+std::to_string(i); //not sure what to put here.
-		h.frame_id = "imu_o"+ std::to_string(i);
+		//h.frame_id = "imu_o"+ std::to_string(i);
+		h.frame_id = imuObservationOrder[i];
 		double now = ros::Time::now().toSec();
 		if (now - time > MAX_DELAY)
 			ROS_WARN_STREAM("The time delay difference between acquired data is greater than " << MAX_DELAY << " publication time: " << time << " Now is: " << now );
@@ -205,8 +206,8 @@ tf::Quaternion hamiltonToTFQuaternion(double q0,
 
 void imu_to_tf(sensor_msgs::Imu imu, std::string fixed_frame_, tf::TransformBroadcaster *tf_broadcaster_, int i)
 {
-	bool reverse_tf_ = true;
-	bool anverse = true;
+	bool reverse_tf_ = false;
+	bool anverse = false;
 	
 	// idk what i use here
 	//tf::Quaternion q = hamiltonToTFQuaternion(q0, q1, q2, q3);
@@ -220,7 +221,7 @@ void imu_to_tf(sensor_msgs::Imu imu, std::string fixed_frame_, tf::TransformBroa
 	//stolen from imu_complementary_filter
 	// Create and publish the ROS tf.
         tf::Transform transform;
-        transform.setOrigin(tf::Vector3(0.1, 0.1, 0.1));
+        transform.setOrigin(tf::Vector3(0.3*i, 0.1, 0.1));
         transform.setRotation(q);
 
         if (reverse_tf_)
@@ -261,7 +262,9 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
   ros::NodeHandle nh("~");
   ros::Publisher chatter_pub = n.advertise<std_msgs::String>("imu_driver_string", 1000);
-  ros::Rate loop_rate(10);
+  double rate = 10;
+  nh.getParam("rate",rate);
+  ros::Rate loop_rate(rate);
   int count = 0;
   int MAXIMUS = 10;
   bool publish_tfs = true;
@@ -271,12 +274,30 @@ int main(int argc, char **argv)
   ROS_INFO_STREAM("NUM imus " << MAXIMUS );
   std::deque<ros::Publisher> ImuPubs;
 
+  std::vector<std::string> imuObservationOrder;
+  nh.getParam("imu_observation_order", imuObservationOrder);
+  if (imuObservationOrder.size() == 0)
+			{
+				ROS_FATAL("IMU observation order not defined!");
+				throw(std::invalid_argument("imuObservationOrder not defined."));
+			}
+
+/*  if (imuObservationOrder.size() == 0)
+  {
+	  for (int i= 0; i < MAXIMUS; i++)
+	  {
+		  ROS_INFO_STREAM("Iterating publishers: " << i);
+		  imuObservationOrder[i] = "imu"+std::to_string(i)+"/data_raw";  
+	  }
+
+  }*/
+
   tf::TransformBroadcaster tf_broadcaster_;
 
-  for (int i= 0; i < MAXIMUS; i++)
+  for (int i= 0; i < imuObservationOrder.size(); i++)
   {
 	  ROS_INFO_STREAM("Iterating publishers: " << i);
-	  ImuPubs.push_back(n.advertise<sensor_msgs::Imu>("imu"+std::to_string(i)+"/data_raw", 1000));  
+	  ImuPubs.push_back(n.advertise<sensor_msgs::Imu>(imuObservationOrder[i], 1000));  
   }
   SimpleServer server;
   ROS_INFO("Started cometa bridge listener.");
@@ -285,12 +306,13 @@ int main(int argc, char **argv)
     if (server.receive())
     {
 	    ROS_DEBUG_STREAM("SimpleServer received okay.");
-	    std::deque<sensor_msgs::Imu> I = convert_text(server.output);
+	    std::deque<sensor_msgs::Imu> I = convert_text(server.output,imuObservationOrder);
 	    ROS_DEBUG_STREAM("How many IMUs I found: " << I.size() << ". How many publishers I have: " << ImuPubs.size());
 	    for (int i = 0; i < I.size(); i++)
 	    {
 		    //:combine(I, ImuPubs))
-		    std::string fixed_frame_ = "imu" + std::to_string(i)+ "_c";
+		    //std::string fixed_frame_ = "imu" + std::to_string(i)+ "_c";
+		    std::string fixed_frame_ = "map";
 		    ROS_DEBUG_STREAM("i: " << i);
 		    //ros::Publisher pub;
 		    //sensor_msgs::Imu imumsg;

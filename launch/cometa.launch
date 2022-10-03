@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<launch>
+	<arg name="freq" default="100" />
+
+        <node pkg="cometa_bridge" type="node" 	name="cometa_bridge_node" output="screen" >
+		<param name="publish_tfs" 		value="true" />
+		<param name="num_imus" 			value="8" />
+		<param name="rate" 			value="100" />
+		<rosparam param="imu_observation_order" >['torso','pelvis','femur_r','femur_l','tibia_r','tibia_l','talus_r','talus_l']</rosparam>
+
+        </node>
+
+</launch>
+
